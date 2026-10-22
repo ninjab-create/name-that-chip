@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Name That Chip! — HW Fest 2026</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600;700&display=swap');
+
+  :root {
+    --nv-green: #76b900;
+    --nv-green-dark: #5a8f00;
+    --nv-black: #1a1a2e;
+    --nv-dark: #16213e;
+    --nv-mid: #0f3460;
+    --nv-accent: #e94560;
+    --card-bg: rgba(255,255,255,0.05);
+    --gold: #ffd700;
+    --silver: #c0c0c0;
+    --bronze: #cd7f32;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, var(--nv-black) 0%, var(--nv-dark) 50%, #0a0a1a 100%);
+    color: #e0e0e0;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    padding: 30px 0 20px;
+  }
+  .header h1 {
+    font-family: 'Orbitron', monospace;
+    font-size: 2.2rem;
+    background: linear-gradient(90deg, var(--nv-green), #a0e040);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 6px;
+  }
+  .header .subtitle {
+    font-size: 0.95rem;
+    color: #888;
+    font-weight: 300;
+  }
+
+  /* Scoreboard bar */
+  .scoreboard {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .score-item {
+    text-align: center;
+  }
+  .score-item .label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #777;
+  }
+  .score-item .value {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.5rem;
+    color: var(--nv-green);
+    font-weight: 700;
+  }
+
+  /* Hint cards */
+  .hints-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .hint-card {
+    background: var(--card-bg);
+    border: 1px solid rgba(118,185,0,0.15);
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+    position: relative;
+    min-height: 90px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    transition: all 0.4s ease;
+  }
+  .hint-card.locked {
+    background: rgba(255,255,255,0.02);
+    border-color: rgba(255,255,255,0.06);
+    cursor: default;
+  }
+  .hint-card.locked .hint-content { display: none; }
+  .hint-card.locked::after {
+    content: '🔒';
+    font-size: 1.6rem;
+    opacity: 0.3;
+  }
+  .hint-card.revealed {
+    border-color: rgba(118,185,0,0.4);
+    background: rgba(118,185,0,0.06);
+    animation: revealPop 0.4s ease;
+  }
+  @keyframes revealPop {
+    0% { transform: scale(0.95); opacity: 0.5; }
+    50% { transform: scale(1.03); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .hint-card .hint-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: #888;
+    margin-bottom: 6px;
+  }
+  .hint-card .hint-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.1rem;
+    color: #fff;
+    font-weight: 600;
+  }
+  .hint-card .hint-number {
+    position: absolute;
+    top: 6px;
+    left: 10px;
+    font-size: 0.6rem;
+    color: #555;
+    font-weight: 600;
+  }
+
+  /* Reveal hint button */
+  .reveal-btn {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    margin-bottom: 20px;
+    background: linear-gradient(135deg, var(--nv-mid), var(--nv-dark));
+    border: 1px solid rgba(118,185,0,0.3);
+    border-radius: 10px;
+    color: var(--nv-green);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .reveal-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, rgba(118,185,0,0.15), var(--nv-dark));
+    border-color: var(--nv-green);
+    transform: translateY(-1px);
+  }
+  .reveal-btn:disabled {
+    opacity: 0.3;
+    cursor: default;
+  }
+
+  /* Answer section */
+  .answer-section {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .choices-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .choice-btn {
+    padding: 14px 10px;
+    background: var(--card-bg);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    color: #ddd;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .choice-btn:hover:not(:disabled) {
+    border-color: var(--nv-green);
+    background: rgba(118,185,0,0.08);
+    color: #fff;
+    transform: translateY(-1px);
+  }
+  .choice-btn:disabled { cursor: default; }
+  .choice-btn.correct {
+    border-color: var(--nv-green) !important;
+    background: rgba(118,185,0,0.2) !important;
+    color: var(--nv-green) !important;
+    animation: correctPulse 0.5s ease;
+  }
+  .choice-btn.wrong {
+    border-color: var(--nv-accent) !important;
+    background: rgba(233,69,96,0.15) !important;
+    color: var(--nv-accent) !important;
+  }
+  @keyframes correctPulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(118,185,0,0); }
+    50% { box-shadow: 0 0 20px 4px rgba(118,185,0,0.3); }
+  }
+
+  /* Feedback toast */
+  .feedback {
+    text-align: center;
+    padding: 14px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 16px;
+    display: none;
+  }
+  .feedback.correct {
+    display: block;
+    background: rgba(118,185,0,0.12);
+    color: var(--nv-green);
+    border: 1px solid rgba(118,185,0,0.3);
+  }
+  .feedback.wrong {
+    display: block;
+    background: rgba(233,69,96,0.12);
+    color: var(--nv-accent);
+    border: 1px solid rgba(233,69,96,0.3);
+  }
+
+  /* Next / Start button */
+  .next-btn, .start-btn {
+    display: block;
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, var(--nv-green), var(--nv-green-dark));
+    border: none;
+    border-radius: 10px;
+    color: #000;
+    font-family: 'Orbitron', monospace;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .next-btn:hover, .start-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(118,185,0,0.3);
+  }
+  .next-btn { display: none; }
+
+  /* Welcome screen */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .welcome-box {
+    text-align: center;
+    padding: 40px 20px;
+  }
+  .welcome-box .emoji { font-size: 4rem; margin-bottom: 16px; }
+  .welcome-box p {
+    color: #aaa;
+    line-height: 1.7;
+    margin-bottom: 20px;
+    font-size: 0.95rem;
+  }
+  .rules-list {
+    text-align: left;
+    display: inline-block;
+    margin-bottom: 28px;
+  }
+  .rules-list li {
+    margin-bottom: 8px;
+    color: #bbb;
+    font-size: 0.88rem;
+  }
+  .rules-list li strong { color: var(--nv-green); }
+
+  /* Results screen */
+  .results-box {
+    text-align: center;
+    padding: 30px 20px;
+  }
+  .results-box .trophy { font-size: 4rem; margin-bottom: 10px; }
+  .results-box h2 {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.6rem;
+    color: var(--nv-green);
+    margin-bottom: 6px;
+  }
+  .final-score {
+    font-family: 'Orbitron', monospace;
+    font-size: 3rem;
+    color: var(--gold);
+    margin: 16px 0;
+  }
+  .final-breakdown {
+    margin: 20px auto;
+    max-width: 400px;
+  }
+  .breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-size: 0.88rem;
+  }
+  .breakdown-row .bl { color: #888; }
+  .breakdown-row .bv { font-weight: 600; }
+  .breakdown-row .bv.correct-color { color: var(--nv-green); }
+  .breakdown-row .bv.wrong-color { color: var(--nv-accent); }
+
+  .share-btn {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 12px 32px;
+    background: var(--nv-mid);
+    border: 1px solid rgba(118,185,0,0.3);
+    border-radius: 8px;
+    color: var(--nv-green);
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+  }
+  .share-btn:hover { border-color: var(--nv-green); }
+
+  .progress-bar-bg {
+    width: 100%;
+    height: 4px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 2px;
+    margin-bottom: 20px;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--nv-green);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  /* Responsive */
+  @media (max-width: 500px) {
+    .header h1 { font-size: 1.5rem; }
+    .hints-grid { grid-template-columns: 1fr; }
+    .choices-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>🎯 NAME THAT CHIP!</h1>
+    <div class="subtitle">HW Fest 2026 — Pre-Event Game</div>
+  </div>
+
+  <!-- WELCOME SCREEN -->
+  <div id="welcome-screen" class="screen active">
+    <div class="welcome-box">
+      <div class="emoji">🧠</div>
+      <p>Think you know your NVIDIA GPUs?<br>Guess the chip from its specs — the fewer hints you need, the higher your score!</p>
+      <ul class="rules-list">
+        <li>Each round shows <strong>6 hints</strong>, revealed one at a time</li>
+        <li>You start with <strong>100 points</strong> per round</li>
+        <li>Each hint revealed costs <strong>-15 points</strong></li>
+        <li>Wrong guess: <strong>-10 points</strong> (you can try again)</li>
+        <li>Pick from 4 choices — only <strong>one</strong> is correct</li>
+        <li><strong>10 rounds</strong> total — max score: 1000</li>
+      </ul>
+      <button class="start-btn" onclick="startGame()">⚡ START GAME</button>
+    </div>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div id="game-screen" class="screen">
+    <div class="scoreboard">
+      <div class="score-item">
+        <div class="label">Score</div>
+        <div class="value" id="score-display">0</div>
+      </div>
+      <div class="score-item">
+        <div class="label">Round</div>
+        <div class="value" id="round-display">1/10</div>
+      </div>
+      <div class="score-item">
+        <div class="label">Round Pts</div>
+        <div class="value" id="round-pts-display">100</div>
+      </div>
+    </div>
+
+    <div class="progress-bar-bg">
+      <div class="progress-bar-fill" id="progress-fill" style="width:10%"></div>
+    </div>
+
+    <div class="hints-grid" id="hints-grid"></div>
+
+    <button class="reveal-btn" id="reveal-btn" onclick="revealHint()">🔍 Reveal Next Hint (-15 pts)</button>
+
+    <div class="feedback" id="feedback"></div>
+
+    <div class="answer-section">
+      <div class="choices-grid" id="choices-grid"></div>
+    </div>
+
+    <button class="next-btn" id="next-btn" onclick="nextRound()">NEXT ROUND →</button>
+  </div>
+
+  <!-- RESULTS SCREEN -->
+  <div id="results-screen" class="screen">
+    <div class="results-box">
+      <div class="trophy" id="trophy-emoji">🏆</div>
+      <h2 id="results-title">Game Over!</h2>
+      <div class="final-score" id="final-score">0</div>
+      <p style="color:#888;margin-bottom:4px;" id="results-subtitle">out of 1000</p>
+      <div class="final-breakdown" id="final-breakdown"></div>
+      <button class="start-btn" onclick="startGame()" style="margin-top:16px;">🔄 PLAY AGAIN</button>
+      <br>
+      <button class="share-btn" onclick="copyScore()">📋 Copy Score to Share</button>
+      <div id="copy-confirm" style="color:var(--nv-green);margin-top:8px;font-size:0.85rem;display:none;">Copied!</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== CHIP DATABASE ==========
+const ALL_CHIPS = [
+  {
+    name: "GeForce RTX 4090",
+    codename: "AD102",
+    architecture: "Ada Lovelace",
+    process: "TSMC 4N (5nm-class)",
+    transistors: "76.3 billion",
+    cuda_cores: "16,384",
+    memory: "24 GB GDDR6X",
+    mem_bus: "384-bit",
+    tdp: "450W",
+    launch: "2022",
+    die_size: "608.4 mm²"
+  },
+  {
+    name: "GeForce RTX 3090",
+    codename: "GA102",
+    architecture: "Ampere",
+    process: "Samsung 8nm",
+    transistors: "28.3 billion",
+    cuda_cores: "10,496",
+    memory: "24 GB GDDR6X",
+    mem_bus: "384-bit",
+    tdp: "350W",
+    launch: "2020",
+    die_size: "628.4 mm²"
+  },
+  {
+    name: "GeForce RTX 2080 Ti",
+    codename: "TU102",
+    architecture: "Turing",
+    process: "TSMC 12nm",
+    transistors: "18.6 billion",
+    cuda_cores: "4,352",
+    memory: "11 GB GDDR6",
+    mem_bus: "352-bit",
+    tdp: "250W",
+    launch: "2018",
+    die_size: "754 mm²"
+  },
+  {
+    name: "GeForce GTX 1080 Ti",
+    codename: "GP102",
+    architecture: "Pascal",
+    process: "TSMC 16nm",
+    transistors: "12 billion",
+    cuda_cores: "3,584",
+    memory: "11 GB GDDR5X",
+    mem_bus: "352-bit",
+    tdp: "250W",
+    launch: "2017",
+    die_size: "471 mm²"
+  },
+  {
+    name: "GeForce GTX 980 Ti",
+    codename: "GM200",
+    architecture: "Maxwell",
+    process: "TSMC 28nm",
+    transistors: "8 billion",
+    cuda_cores: "2,816",
+    memory: "6 GB GDDR5",
+    mem_bus: "384-bit",
+    tdp: "250W",
+    launch: "2015",
+    die_size: "601 mm²"
+  },
+  {
+    name: "Tesla V100",
+    codename: "GV100",
+    architecture: "Volta",
+    process: "TSMC 12nm",
+    transistors: "21.1 billion",
+    cuda_cores: "5,120",
+    memory: "32 GB HBM2",
+    mem_bus: "4096-bit",
+    tdp: "300W",
+    launch: "2017",
+    die_size: "815 mm²"
+  },
+  {
+    name: "A100",
+    codename: "GA100",
+    architecture: "Ampere",
+    process: "TSMC 7nm",
+    transistors: "54.2 billion",
+    cuda_cores: "6,912",
+    memory: "80 GB HBM2e",
+    mem_bus: "5120-bit",
+    tdp: "400W",
+    launch: "2020",
+    die_size: "826 mm²"
+  },
+  {
+    name: "H100",
+    codename: "GH100",
+    architecture: "Hopper",
+    process: "TSMC 4N (5nm-class)",
+    transistors: "80 billion",
+    cuda_cores: "14,592",
+    memory: "80 GB HBM3",
+    mem_bus: "5120-bit",
+    tdp: "700W",
+    launch: "2022",
+    die_size: "814 mm²"
+  },
+  {
+    name: "GeForce RTX 4070 Ti",
+    codename: "AD104",
+    architecture: "Ada Lovelace",
+    process: "TSMC 4N (5nm-class)",
+    transistors: "35.8 billion",
+    cuda_cores: "7,680",
+    memory: "12 GB GDDR6X",
+    mem_bus: "192-bit",
+    tdp: "285W",
+    launch: "2023",
+    die_size: "294.5 mm²"
+  },
+  {
+    name: "GeForce GTX 1060",
+    codename: "GP106",
+    architecture: "Pascal",
+    process: "TSMC 16nm",
+    transistors: "4.4 billion",
+    cuda_cores: "1,280",
+    memory: "6 GB GDDR5",
+    mem_bus: "192-bit",
+    tdp: "120W",
+    launch: "2016",
+    die_size: "200 mm²"
+  },
+  {
+    name: "GeForce RTX 3060 Ti",
+    codename: "GA104",
+    architecture: "Ampere",
+    process: "Samsung 8nm",
+    transistors: "17.4 billion",
+    cuda_cores: "4,864",
+    memory: "8 GB GDDR6",
+    mem_bus: "256-bit",
+    tdp: "200W",
+    launch: "2020",
+    die_size: "392.5 mm²"
+  },
+  {
+    name: "GeForce RTX 5090",
+    codename: "GB202",
+    architecture: "Blackwell",
+    process: "TSMC 4NP",
+    transistors: "92.2 billion",
+    cuda_cores: "21,760",
+    memory: "32 GB GDDR7",
+    mem_bus: "512-bit",
+    tdp: "575W",
+    launch: "2025",
+    die_size: "744 mm²"
+  },
+  {
+    name: "Tesla P100",
+    codename: "GP100",
+    architecture: "Pascal",
+    process: "TSMC 16nm",
+    transistors: "15.3 billion",
+    cuda_cores: "3,584",
+    memory: "16 GB HBM2",
+    mem_bus: "4096-bit",
+    tdp: "300W",
+    launch: "2016",
+    die_size: "610 mm²"
+  },
+  {
+    name: "GeForce GTX 780 Ti",
+    codename: "GK110",
+    architecture: "Kepler",
+    process: "TSMC 28nm",
+    transistors: "7.1 billion",
+    cuda_cores: "2,880",
+    memory: "3 GB GDDR5",
+    mem_bus: "384-bit",
+    tdp: "250W",
+    launch: "2013",
+    die_size: "561 mm²"
+  },
+  {
+    name: "B200",
+    codename: "GB200",
+    architecture: "Blackwell",
+    process: "TSMC 4NP",
+    transistors: "208 billion",
+    cuda_cores: "18,432",
+    memory: "192 GB HBM3e",
+    mem_bus: "8192-bit",
+    tdp: "1000W",
+    launch: "2024",
+    die_size: "2× 410 mm² (MCM)"
+  },
+  {
+    name: "GeForce RTX 4060",
+    codename: "AD107",
+    architecture: "Ada Lovelace",
+    process: "TSMC 4N (5nm-class)",
+    transistors: "18.9 billion",
+    cuda_cores: "3,072",
+    memory: "8 GB GDDR6",
+    mem_bus: "128-bit",
+    tdp: "115W",
+    launch: "2023",
+    die_size: "159 mm²"
+  },
+];
+
+// ========== GAME STATE ==========
+const TOTAL_ROUNDS = 10;
+const START_PTS = 100;
+const HINT_COST = 15;
+const WRONG_COST = 10;
+
+let gameChips = [];
+let roundIndex = 0;
+let totalScore = 0;
+let roundScore = 0;
+let hintsRevealed = 0;
+let answered = false;
+let roundResults = []; // {chip, correct, hintsUsed, pts}
+
+// ========== HINT BUILDER ==========
+function getHints(chip) {
+  return [
+    { label: "Architecture", value: chip.architecture },
+    { label: "Process Node", value: chip.process },
+    { label: "Transistors", value: chip.transistors },
+    { label: "CUDA Cores", value: chip.cuda_cores },
+    { label: "Memory", value: chip.memory },
+    { label: "Die Size", value: chip.die_size },
+  ];
+}
+
+// ========== DECOY PICKER ==========
+function pickChoices(correctChip) {
+  const pool = ALL_CHIPS.filter(c => c.name !== correctChip.name);
+  // shuffle pool
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  const decoys = pool.slice(0, 3);
+  const choices = [...decoys.map(c => c.name), correctChip.name];
+  // shuffle choices
+  for (let i = choices.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [choices[i], choices[j]] = [choices[j], choices[i]];
+  }
+  return choices;
+}
+
+// ========== SCREENS ==========
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ========== START ==========
+function startGame() {
+  // pick 10 random chips
+  const shuffled = [...ALL_CHIPS];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  gameChips = shuffled.slice(0, TOTAL_ROUNDS);
+  roundIndex = 0;
+  totalScore = 0;
+  roundResults = [];
+  showScreen('game-screen');
+  loadRound();
+}
+
+// ========== LOAD ROUND ==========
+function loadRound() {
+  const chip = gameChips[roundIndex];
+  const hints = getHints(chip);
+  hintsRevealed = 1; // first hint free
+  roundScore = START_PTS;
+  answered = false;
+
+  // Update scoreboard
+  document.getElementById('score-display').textContent = totalScore;
+  document.getElementById('round-display').textContent = `${roundIndex + 1}/${TOTAL_ROUNDS}`;
+  document.getElementById('round-pts-display').textContent = roundScore;
+  document.getElementById('progress-fill').style.width = `${((roundIndex + 1) / TOTAL_ROUNDS) * 100}%`;
+
+  // Build hint cards
+  const grid = document.getElementById('hints-grid');
+  grid.innerHTML = '';
+  hints.forEach((h, i) => {
+    const card = document.createElement('div');
+    card.className = 'hint-card' + (i === 0 ? ' revealed' : ' locked');
+    card.id = `hint-${i}`;
+    card.innerHTML = `
+      <div class="hint-number">#${i + 1}</div>
+      <div class="hint-content">
+        <div class="hint-label">${h.label}</div>
+        <div class="hint-value">${h.value}</div>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+
+  // Build choices
+  const choices = pickChoices(chip);
+  const cGrid = document.getElementById('choices-grid');
+  cGrid.innerHTML = '';
+  choices.forEach(name => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.textContent = name;
+    btn.onclick = () => makeGuess(btn, name, chip.name);
+    cGrid.appendChild(btn);
+  });
+
+  // Reset UI
+  document.getElementById('reveal-btn').disabled = false;
+  document.getElementById('reveal-btn').style.display = 'block';
+  document.getElementById('next-btn').style.display = 'none';
+  const fb = document.getElementById('feedback');
+  fb.className = 'feedback';
+  fb.style.display = 'none';
+}
+
+// ========== REVEAL HINT ==========
+function revealHint() {
+  if (hintsRevealed >= 6 || answered) return;
+  const card = document.getElementById(`hint-${hintsRevealed}`);
+  card.classList.remove('locked');
+  card.classList.add('revealed');
+  hintsRevealed++;
+  roundScore = Math.max(0, roundScore - HINT_COST);
+  document.getElementById('round-pts-display').textContent = roundScore;
+  if (hintsRevealed >= 6) {
+    document.getElementById('reveal-btn').disabled = true;
+  }
+}
+
+// ========== GUESS ==========
+function makeGuess(btn, guess, correct) {
+  if (answered) return;
+
+  if (guess === correct) {
+    answered = true;
+    btn.classList.add('correct');
+    // highlight correct
+    document.querySelectorAll('.choice-btn').forEach(b => b.disabled = true);
+    const fb = document.getElementById('feedback');
+    fb.className = 'feedback correct';
+    fb.innerHTML = `✅ Correct! <strong>+${roundScore} pts</strong>`;
+    fb.style.display = 'block';
+    totalScore += roundScore;
+    document.getElementById('score-display').textContent = totalScore;
+    roundResults.push({ chip: correct, correct: true, hintsUsed: hintsRevealed, pts: roundScore });
+    document.getElementById('reveal-btn').style.display = 'none';
+    document.getElementById('next-btn').style.display = 'block';
+    document.getElementById('next-btn').textContent = roundIndex < TOTAL_ROUNDS - 1 ? 'NEXT ROUND →' : '🏁 SEE RESULTS';
+    // reveal all remaining hints
+    for (let i = 0; i < 6; i++) {
+      const c = document.getElementById(`hint-${i}`);
+      c.classList.remove('locked');
+      c.classList.add('revealed');
+    }
+  } else {
+    btn.classList.add('wrong');
+    btn.disabled = true;
+    roundScore = Math.max(0, roundScore - WRONG_COST);
+    document.getElementById('round-pts-display').textContent = roundScore;
+    const fb = document.getElementById('feedback');
+    fb.className = 'feedback wrong';
+    fb.innerHTML = `❌ Not that one! <strong>-${WRONG_COST} pts</strong> — try again`;
+    fb.style.display = 'block';
+  }
+}
+
+// ========== NEXT ROUND ==========
+function nextRound() {
+  roundIndex++;
+  if (roundIndex >= TOTAL_ROUNDS) {
+    showResults();
+  } else {
+    loadRound();
+  }
+}
+
+// ========== RESULTS ==========
+function showResults() {
+  showScreen('results-screen');
+  document.getElementById('final-score').textContent = totalScore;
+  const pct = totalScore / (TOTAL_ROUNDS * START_PTS);
+  let title, emoji;
+  if (pct >= 0.9) { title = "GPU Grandmaster!"; emoji = "🏆"; }
+  else if (pct >= 0.7) { title = "Silicon Savant"; emoji = "🥇"; }
+  else if (pct >= 0.5) { title = "Chip Connoisseur"; emoji = "🥈"; }
+  else if (pct >= 0.3) { title = "Spec Sheet Skimmer"; emoji = "🥉"; }
+  else { title = "Back to the Datasheet…"; emoji = "📖"; }
+  document.getElementById('trophy-emoji').textContent = emoji;
+  document.getElementById('results-title').textContent = title;
+
+  const bd = document.getElementById('final-breakdown');
+  bd.innerHTML = '<div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:1px;color:#666;margin-bottom:8px;">Round Breakdown</div>';
+  roundResults.forEach((r, i) => {
+    bd.innerHTML += `
+      <div class="breakdown-row">
+        <span class="bl">R${i+1}: ${r.chip}</span>
+        <span class="bv ${r.correct ? 'correct-color' : 'wrong-color'}">${r.correct ? '+' + r.pts : '0'} (${r.hintsUsed} hints)</span>
+      </div>`;
+  });
+}
+
+// ========== SHARE ==========
+function copyScore() {
+  const correct = roundResults.filter(r => r.correct).length;
+  const txt = `🎯 Name That Chip! — HW Fest 2026\nScore: ${totalScore}/1000 | ${correct}/${TOTAL_ROUNDS} correct\nThink you can beat me? Play here!`;
+  navigator.clipboard.writeText(txt).then(() => {
+    const c = document.getElementById('copy-confirm');
+    c.style.display = 'block';
+    setTimeout(() => c.style.display = 'none', 2000);
+  });
+}
+</script>
+
+</body>
+</html>
