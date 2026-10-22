@@ -1,7 +1,7 @@
 pages:
   stage: deploy
   tags:
-    - docker
+    - pages
   script:
     - mkdir -p public
     - cp index.html public/
