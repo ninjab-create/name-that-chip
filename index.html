@@ -585,7 +585,107 @@
 // =====================================================
 // CONFIGURATION — UPDATE THIS WITH YOUR GOOGLE APPS SCRIPT URL
 // =====================================================
-const LEADERBOARD_API = 'https://script.google.com/a/macros/nvidia.com/s/AKfycbzrD2t3WkRM49-wKCZJK6c45gZfkA9VjI3xuZPm5I-RSkmCJby0DH1OhKc_wJtrZQFW/exec';
+const LEADERBOARD_API = 'https://script.google.com/a/macros/nvidia.com/s/AKfycbyvg5W8DW08OSWoTV_yJD0kta52_eRovKu0RdnLsSBesPHUxHSQWYNxCeX_uFLd-ekM/exec';
+
+// ========== LOCAL LEADERBOARD (localStorage) ==========
+function getLocalLeaderboard() {
+  try {
+    return JSON.parse(localStorage.getItem('ntc_leaderboard') || '[]');
+  } catch(e) { return []; }
+}
+function saveLocalScore(name, score) {
+  const lb = getLocalLeaderboard();
+  // Update if same name exists with higher score, else add
+  const existing = lb.find(e => e.name.toLowerCase() === name.toLowerCase());
+  if (existing) {
+    if (score > existing.score) existing.score = score;
+  } else {
+    lb.push({ name: name, score: score });
+  }
+  lb.sort((a, b) => b.score - a.score);
+  localStorage.setItem('ntc_leaderboard', JSON.stringify(lb.slice(0, 50)));
+}
+
+
+// ========== IFRAME + POSTMESSAGE HELPERS ==========
+// Sends requests to Apps Script via hidden iframe to carry Google auth cookies.
+// Falls back silently if the iframe auth fails.
+let _iframeCallbackMap = {};
+let _iframeCounter = 0;
+
+window.addEventListener('message', function(event) {
+  // Accept postMessage from Apps Script iframe
+  if (event.data && event.data.type) {
+    const cbs = _iframeCallbackMap[event.data.type];
+    if (cbs) {
+      delete _iframeCallbackMap[event.data.type];
+      cbs.resolve(event.data);
+    }
+  }
+});
+
+function iframeGet(url, type, timeoutMs) {
+  return new Promise(function(resolve, reject) {
+    var iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = url;
+    _iframeCallbackMap[type] = { resolve: resolve };
+    document.body.appendChild(iframe);
+    setTimeout(function() {
+      if (_iframeCallbackMap[type]) {
+        delete _iframeCallbackMap[type];
+        reject(new Error('timeout'));
+      }
+      try { document.body.removeChild(iframe); } catch(e) {}
+    }, timeoutMs || 8000);
+    // Clean up iframe after response
+    var origResolve = resolve;
+    _iframeCallbackMap[type].resolve = function(data) {
+      try { document.body.removeChild(iframe); } catch(e) {}
+      origResolve(data);
+    };
+  });
+}
+
+function iframePost(url, body, type, timeoutMs) {
+  return new Promise(function(resolve, reject) {
+    // POST via hidden form targeting a hidden iframe
+    var frameName = '_lbpost_' + (++_iframeCounter);
+    var iframe = document.createElement('iframe');
+    iframe.name = frameName;
+    iframe.style.display = 'none';
+    document.body.appendChild(iframe);
+
+    _iframeCallbackMap[type] = { resolve: resolve };
+
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = url;
+    form.target = frameName;
+    form.style.display = 'none';
+    var input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'postData';
+    input.value = JSON.stringify(body);
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+
+    setTimeout(function() {
+      if (_iframeCallbackMap[type]) {
+        delete _iframeCallbackMap[type];
+        reject(new Error('timeout'));
+      }
+      try { document.body.removeChild(iframe); } catch(e) {}
+    }, timeoutMs || 10000);
+    var origResolve2 = resolve;
+    _iframeCallbackMap[type].resolve = function(data) {
+      try { document.body.removeChild(iframe); } catch(e) {}
+      origResolve2(data);
+    };
+  });
+}
 
 // ========== CHIP DATABASE ==========
 const ALL_CHIPS = [
@@ -935,10 +1035,21 @@ async function startGame() {
     return;
   }
 
-  // Check if this email already played (server check)
+  // Local check first
+  const localScore = hasLocalPlayed(email);
+  if (localScore !== null) {
+    document.getElementById('prev-score').textContent = localScore;
+    showScreen('already-played-screen');
+    loadLeaderboard('lb-already-played');
+    return;
+  }
+
+  // Try server check via iframe (non-blocking — if it fails, allow play)
   try {
-    const checkRes = await fetch(LEADERBOARD_API + '?checkEmail=' + encodeURIComponent(email));
-    const checkData = await checkRes.json();
+    const checkData = await iframeGet(
+      LEADERBOARD_API + '?checkEmail=' + encodeURIComponent(email),
+      'checkEmail', 6000
+    );
     if (checkData.already_played) {
       document.getElementById('prev-score').textContent = checkData.score;
       showScreen('already-played-screen');
@@ -1139,58 +1250,79 @@ async function submitScore() {
   status.textContent = 'Submitting...';
   status.style.color = '#888';
 
+  // Always save locally
+  saveLocalScore(playerName, totalScore);
+
   if (!LEADERBOARD_API) {
-    // No backend configured — just save locally
-    status.innerHTML = '✅ Score saved locally! <span style="color:#666;">(Leaderboard backend not configured)</span>';
+    status.innerHTML = '✅ Score saved! <span style="color:#666;">(Local leaderboard)</span>';
     status.style.color = 'var(--nv-green)';
+    loadLeaderboard('lb-results');
     return;
   }
 
+  // Try server submit via iframe
   try {
-    const resp = await fetch(LEADERBOARD_API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: playerName, email: playerEmail, score: totalScore }),
-    });
-    if (resp.ok) {
-      status.textContent = '✅ Score submitted!';
+    const resp = await iframeGet(
+      LEADERBOARD_API + '?submitName=' + encodeURIComponent(playerName)
+        + '&submitEmail=' + encodeURIComponent(playerEmail)
+        + '&submitScore=' + encodeURIComponent(totalScore),
+      'submitScore', 10000
+    );
+    if (resp.success || resp.error === 'already_played') {
+      status.textContent = '✅ Score submitted to leaderboard!';
       status.style.color = 'var(--nv-green)';
       loadLeaderboard('lb-results');
     } else {
-      throw new Error('Server error');
+      throw new Error('unexpected response');
     }
   } catch (e) {
-    // Fallback: save locally
-    status.textContent = '⚠️ Could not reach leaderboard server. Please try again.';
-    status.style.color = 'var(--nv-accent)';
-    btn.disabled = false;
+    status.innerHTML = '✅ Score saved locally! <span style="color:#999;">(Cloud leaderboard unavailable)</span>';
+    status.style.color = 'var(--nv-green)';
+    loadLeaderboard('lb-results');
   }
 }
 
 // ========== LEADERBOARD ==========
 async function loadLeaderboard(containerId) {
   const el = document.getElementById(containerId);
-  if (!LEADERBOARD_API) {
-    el.innerHTML = '<span class="lb-loading">Leaderboard will appear once the backend is connected.</span>';
+
+  // Merge local + server data
+  let entries = getLocalLeaderboard();
+
+  // Try loading server leaderboard via iframe
+  if (LEADERBOARD_API) {
+    try {
+      const resp = await iframeGet(LEADERBOARD_API, 'leaderboard', 6000);
+      const serverData = resp.data || [];
+      // Merge: server entries override local by name
+      serverData.forEach(function(se) {
+        const idx = entries.findIndex(function(le) {
+          return le.name.toLowerCase() === se.name.toLowerCase();
+        });
+        if (idx >= 0) {
+          entries[idx].score = Math.max(entries[idx].score, se.score);
+        } else {
+          entries.push(se);
+        }
+      });
+    } catch(e) {
+      // Server unavailable, local only — that's fine
+    }
+  }
+
+  entries.sort(function(a, b) { return b.score - a.score; });
+
+  if (!entries.length) {
+    el.innerHTML = '<span class="lb-loading">No scores yet — be the first!</span>';
     return;
   }
-  try {
-    const resp = await fetch(LEADERBOARD_API);
-    const data = await resp.json();
-    if (!data.length) {
-      el.innerHTML = '<span class="lb-loading">No scores yet — be the first!</span>';
-      return;
-    }
-    let html = '<table class="lb-table"><thead><tr><th>#</th><th>Player</th><th>Score</th></tr></thead><tbody>';
-    data.slice(0, 10).forEach((entry, i) => {
-      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '';
-      html += `<tr><td class="lb-rank">${medal || (i+1)}</td><td>${entry.name}</td><td>${entry.score}</td></tr>`;
-    });
-    html += '</tbody></table>';
-    el.innerHTML = html;
-  } catch (e) {
-    el.innerHTML = '<span class="lb-loading">Could not load leaderboard.</span>';
-  }
+  let html = '<table class="lb-table"><thead><tr><th>#</th><th>Player</th><th>Score</th></tr></thead><tbody>';
+  entries.slice(0, 10).forEach((entry, i) => {
+    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '';
+    html += `<tr><td class="lb-rank">${medal || (i+1)}</td><td>${entry.name}</td><td>${entry.score}</td></tr>`;
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
 }
 
 // ========== SHARE ==========
