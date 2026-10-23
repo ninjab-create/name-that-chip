@@ -36,6 +36,26 @@ function doPost(e) {
 function doGet(e) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
   const lastRow = sheet.getLastRow();
+  const params = e ? e.parameter : {};
+
+  // Check if a specific email already played
+  if (params.checkEmail) {
+    const emailLower = params.checkEmail.toLowerCase();
+    if (lastRow >= 2) {
+      const emails = sheet.getRange('B2:B' + lastRow).getValues().flat();
+      const found = emails.some(e => String(e).toLowerCase() === emailLower);
+      if (found) {
+        const rows = sheet.getRange('A2:C' + lastRow).getValues();
+        const row = rows.find(r => String(r[1]).toLowerCase() === emailLower);
+        return ContentService.createTextOutput(JSON.stringify({ already_played: true, score: row ? row[2] : 0 }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify({ already_played: false }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // Return leaderboard
   if (lastRow < 2) {
     return ContentService.createTextOutput(JSON.stringify([]))
       .setMimeType(ContentService.MimeType.JSON);

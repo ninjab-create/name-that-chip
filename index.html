@@ -585,7 +585,7 @@
 // =====================================================
 // CONFIGURATION — UPDATE THIS WITH YOUR GOOGLE APPS SCRIPT URL
 // =====================================================
-const LEADERBOARD_API = 'https://script.google.com/a/macros/nvidia.com/s/AKfycbwROS4MootlNO2j4YbNoIO6foHMIyS-e56mrPPaVQ0eHxmzNYBp5GF4VH4pByheSsCW/exec';
+const LEADERBOARD_API = 'https://script.google.com/a/macros/nvidia.com/s/AKfycbzrD2t3WkRM49-wKCZJK6c45gZfkA9VjI3xuZPm5I-RSkmCJby0DH1OhKc_wJtrZQFW/exec';
 
 // ========== CHIP DATABASE ==========
 const ALL_CHIPS = [
@@ -915,7 +915,7 @@ function showScreen(id) {
 }
 
 // ========== START ==========
-function startGame() {
+async function startGame() {
   const nameInput = document.getElementById('player-name');
   const emailInput = document.getElementById('player-email');
   const name = nameInput.value.trim();
@@ -935,14 +935,18 @@ function startGame() {
     return;
   }
 
-  // Check if this email already played
-  const played = localStorage.getItem('ntc_played_' + email);
-  if (played) {
-    const data = JSON.parse(played);
-    document.getElementById('prev-score').textContent = data.score;
-    showScreen('already-played-screen');
-    loadLeaderboard('lb-already-played');
-    return;
+  // Check if this email already played (server check)
+  try {
+    const checkRes = await fetch(LEADERBOARD_API + '?checkEmail=' + encodeURIComponent(email));
+    const checkData = await checkRes.json();
+    if (checkData.already_played) {
+      document.getElementById('prev-score').textContent = checkData.score;
+      showScreen('already-played-screen');
+      loadLeaderboard('lb-already-played');
+      return;
+    }
+  } catch (err) {
+    console.warn('Could not verify play status, allowing play:', err);
   }
 
   playerName = name;
@@ -1137,7 +1141,6 @@ async function submitScore() {
 
   if (!LEADERBOARD_API) {
     // No backend configured — just save locally
-    localStorage.setItem('ntc_played_' + playerEmail, JSON.stringify({ name: playerName, score: totalScore, ts: Date.now() }));
     status.innerHTML = '✅ Score saved locally! <span style="color:#666;">(Leaderboard backend not configured)</span>';
     status.style.color = 'var(--nv-green)';
     return;
@@ -1150,7 +1153,6 @@ async function submitScore() {
       body: JSON.stringify({ name: playerName, email: playerEmail, score: totalScore }),
     });
     if (resp.ok) {
-      localStorage.setItem('ntc_played_' + playerEmail, JSON.stringify({ name: playerName, score: totalScore, ts: Date.now() }));
       status.textContent = '✅ Score submitted!';
       status.style.color = 'var(--nv-green)';
       loadLeaderboard('lb-results');
@@ -1159,8 +1161,7 @@ async function submitScore() {
     }
   } catch (e) {
     // Fallback: save locally
-    localStorage.setItem('ntc_played_' + playerEmail, JSON.stringify({ name: playerName, score: totalScore, ts: Date.now() }));
-    status.textContent = '⚠️ Could not reach leaderboard server. Score saved locally.';
+    status.textContent = '⚠️ Could not reach leaderboard server. Please try again.';
     status.style.color = 'var(--nv-accent)';
     btn.disabled = false;
   }
