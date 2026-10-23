@@ -1,5 +1,7 @@
 pages:
   stage: deploy
+  tags:
+    - pages
   image: alpine:latest
   script:
     - mkdir -p public
