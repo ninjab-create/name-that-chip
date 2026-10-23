@@ -22,12 +22,17 @@
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
+  /* Anti-copy/paste */
   body {
     font-family: 'Inter', sans-serif;
     background: linear-gradient(135deg, var(--nv-black) 0%, var(--nv-dark) 50%, #0a0a1a 100%);
     color: #e0e0e0;
     min-height: 100vh;
     overflow-x: hidden;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
   }
 
   .container {
@@ -36,7 +41,6 @@
     padding: 20px;
   }
 
-  /* Header */
   .header {
     text-align: center;
     padding: 30px 0 20px;
@@ -78,6 +82,14 @@
     color: var(--nv-green);
     font-weight: 700;
   }
+  .score-item .value.timer-warn {
+    color: var(--nv-accent);
+    animation: timerPulse 1s ease infinite;
+  }
+  @keyframes timerPulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
 
   /* Hint cards */
   .hints-grid {
@@ -100,68 +112,66 @@
     transition: all 0.4s ease;
   }
   .hint-card.locked {
+    border-color: rgba(255,255,255,0.05);
     background: rgba(255,255,255,0.02);
-    border-color: rgba(255,255,255,0.06);
-    cursor: default;
   }
   .hint-card.locked .hint-content { display: none; }
   .hint-card.locked::after {
     content: '🔒';
-    font-size: 1.6rem;
+    font-size: 1.5rem;
     opacity: 0.3;
   }
   .hint-card.revealed {
-    border-color: rgba(118,185,0,0.4);
-    background: rgba(118,185,0,0.06);
-    animation: revealPop 0.4s ease;
+    border-color: rgba(118,185,0,0.3);
+    background: rgba(118,185,0,0.05);
+    animation: hintReveal 0.4s ease;
   }
-  @keyframes revealPop {
-    0% { transform: scale(0.95); opacity: 0.5; }
-    50% { transform: scale(1.03); }
-    100% { transform: scale(1); opacity: 1; }
+  @keyframes hintReveal {
+    from { transform: scale(0.95); opacity: 0.5; }
+    to { transform: scale(1); opacity: 1; }
   }
-  .hint-card .hint-label {
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    letter-spacing: 1.2px;
-    color: #888;
-    margin-bottom: 6px;
-  }
-  .hint-card .hint-value {
+  .hint-number {
     font-family: 'Orbitron', monospace;
-    font-size: 1.1rem;
-    color: #fff;
-    font-weight: 600;
+    font-size: 0.65rem;
+    color: var(--nv-green);
+    margin-bottom: 6px;
+    letter-spacing: 1px;
   }
-  .hint-card .hint-number {
-    position: absolute;
-    top: 6px;
-    left: 10px;
-    font-size: 0.6rem;
-    color: #555;
-    font-weight: 600;
+  .hint-label {
+    font-size: 0.7rem;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .hint-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #fff;
   }
 
-  /* Reveal hint button */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* Reveal button */
   .reveal-btn {
     display: block;
     width: 100%;
-    padding: 14px;
-    margin-bottom: 20px;
-    background: linear-gradient(135deg, var(--nv-mid), var(--nv-dark));
-    border: 1px solid rgba(118,185,0,0.3);
+    padding: 12px;
+    background: transparent;
+    border: 1px dashed rgba(118,185,0,0.3);
     border-radius: 10px;
     color: var(--nv-green);
     font-family: 'Inter', sans-serif;
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     font-weight: 600;
     cursor: pointer;
+    margin-bottom: 20px;
     transition: all 0.2s;
   }
   .reveal-btn:hover:not(:disabled) {
-    background: linear-gradient(135deg, rgba(118,185,0,0.15), var(--nv-dark));
+    background: rgba(118,185,0,0.05);
     border-color: var(--nv-green);
-    transform: translateY(-1px);
   }
   .reveal-btn:disabled {
     opacity: 0.3;
@@ -253,49 +263,92 @@
   }
   .next-btn:hover, .start-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 24px rgba(118,185,0,0.3);
+    box-shadow: 0 4px 20px rgba(118,185,0,0.3);
   }
-  .next-btn { display: none; }
 
-  /* Welcome screen */
-  .screen { display: none; }
-  .screen.active { display: block; }
-
+  /* Welcome */
   .welcome-box {
     text-align: center;
     padding: 40px 20px;
   }
-  .welcome-box .emoji { font-size: 4rem; margin-bottom: 16px; }
-  .welcome-box p {
-    color: #aaa;
-    line-height: 1.7;
-    margin-bottom: 20px;
-    font-size: 0.95rem;
-  }
+  .welcome-box .emoji { font-size: 4rem; margin-bottom: 10px; }
+  .welcome-box p { max-width: 500px; margin: 0 auto 20px; line-height: 1.6; color: #aaa; }
   .rules-list {
+    list-style: none;
+    max-width: 420px;
+    margin: 0 auto 30px;
     text-align: left;
-    display: inline-block;
-    margin-bottom: 28px;
   }
   .rules-list li {
-    margin-bottom: 8px;
-    color: #bbb;
+    padding: 6px 0 6px 24px;
+    position: relative;
     font-size: 0.88rem;
+    color: #bbb;
   }
-  .rules-list li strong { color: var(--nv-green); }
+  .rules-list li::before {
+    content: '▸';
+    position: absolute;
+    left: 6px;
+    color: var(--nv-green);
+  }
 
-  /* Results screen */
+  /* Name input */
+  .name-input-group {
+    max-width: 400px;
+    margin: 0 auto 24px;
+  }
+  .name-input-group label {
+    display: block;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #888;
+    margin-bottom: 8px;
+  }
+  .name-input-group input {
+    width: 100%;
+    padding: 14px 16px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(118,185,0,0.3);
+    border-radius: 10px;
+    color: #fff;
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .name-input-group input:focus {
+    border-color: var(--nv-green);
+  }
+  .name-input-group input::placeholder { color: #555; }
+  .name-error {
+    color: var(--nv-accent);
+    font-size: 0.8rem;
+    margin-top: 6px;
+    display: none;
+  }
+
+  /* Already played notice */
+  .already-played {
+    text-align: center;
+    padding: 60px 20px;
+  }
+  .already-played .emoji { font-size: 4rem; margin-bottom: 16px; }
+  .already-played h2 { color: var(--nv-green); margin-bottom: 12px; }
+  .already-played p { color: #888; line-height: 1.6; max-width: 450px; margin: 0 auto; }
+  .already-played .prev-score {
+    font-family: 'Orbitron', monospace;
+    font-size: 2.5rem;
+    color: var(--gold);
+    margin: 20px 0;
+  }
+
+  /* Results */
   .results-box {
     text-align: center;
-    padding: 30px 20px;
+    padding: 40px 20px;
   }
-  .results-box .trophy { font-size: 4rem; margin-bottom: 10px; }
-  .results-box h2 {
-    font-family: 'Orbitron', monospace;
-    font-size: 1.6rem;
-    color: var(--nv-green);
-    margin-bottom: 6px;
-  }
+  .trophy { font-size: 5rem; }
   .final-score {
     font-family: 'Orbitron', monospace;
     font-size: 3rem;
@@ -318,9 +371,9 @@
   .breakdown-row .bv.correct-color { color: var(--nv-green); }
   .breakdown-row .bv.wrong-color { color: var(--nv-accent); }
 
-  .share-btn {
+  .share-btn, .submit-btn {
     display: inline-block;
-    margin-top: 20px;
+    margin-top: 12px;
     padding: 12px 32px;
     background: var(--nv-mid);
     border: 1px solid rgba(118,185,0,0.3);
@@ -332,7 +385,57 @@
     font-size: 0.9rem;
     transition: all 0.2s;
   }
-  .share-btn:hover { border-color: var(--nv-green); }
+  .share-btn:hover, .submit-btn:hover { border-color: var(--nv-green); }
+  .submit-btn {
+    background: linear-gradient(135deg, var(--nv-green), var(--nv-green-dark));
+    color: #000;
+    font-family: 'Orbitron', monospace;
+    font-weight: 700;
+  }
+  .submit-btn:disabled {
+    opacity: 0.4;
+    cursor: default;
+  }
+  .submit-status {
+    margin-top: 10px;
+    font-size: 0.85rem;
+  }
+
+  /* Leaderboard */
+  .leaderboard-section {
+    margin-top: 30px;
+    text-align: center;
+  }
+  .leaderboard-section h3 {
+    font-family: 'Orbitron', monospace;
+    font-size: 1rem;
+    color: var(--nv-green);
+    margin-bottom: 12px;
+  }
+  .lb-table {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto;
+    border-collapse: collapse;
+  }
+  .lb-table th {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #666;
+    padding: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .lb-table td {
+    padding: 10px 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 0.9rem;
+  }
+  .lb-table tr:nth-child(1) td { color: var(--gold); font-weight: 700; }
+  .lb-table tr:nth-child(2) td { color: var(--silver); font-weight: 600; }
+  .lb-table tr:nth-child(3) td { color: var(--bronze); font-weight: 600; }
+  .lb-rank { font-family: 'Orbitron', monospace; font-weight: 700; }
+  .lb-loading { color: #555; font-size: 0.85rem; }
 
   .progress-bar-bg {
     width: 100%;
@@ -348,7 +451,6 @@
     transition: width 0.4s ease;
   }
 
-  /* Responsive */
   @media (max-width: 500px) {
     .header h1 { font-size: 1.5rem; }
     .hints-grid { grid-template-columns: 1fr; }
@@ -364,6 +466,21 @@
     <div class="subtitle">HW Fest 2026 — Pre-Event Game</div>
   </div>
 
+  <!-- ALREADY PLAYED SCREEN -->
+  <div id="already-played-screen" class="screen">
+    <div class="already-played">
+      <div class="emoji">✅</div>
+      <h2>You've Already Played!</h2>
+      <p>Your score has been recorded. Only one attempt per player to keep it fair.</p>
+      <div class="prev-score" id="prev-score">0</div>
+      <p style="color:#666;font-size:0.85rem;">Your submitted score</p>
+      <div class="leaderboard-section">
+        <h3>🏆 LEADERBOARD</h3>
+        <div id="lb-already-played"><span class="lb-loading">Loading...</span></div>
+      </div>
+    </div>
+  </div>
+
   <!-- WELCOME SCREEN -->
   <div id="welcome-screen" class="screen active">
     <div class="welcome-box">
@@ -371,12 +488,24 @@
       <p>Think you know your NVIDIA GPUs?<br>Guess the chip from its specs — the fewer hints you need, the higher your score!</p>
       <ul class="rules-list">
         <li>Each round shows <strong>6 hints</strong>, revealed one at a time</li>
-        <li>You start with <strong>100 points</strong> per round</li>
-        <li>Each hint revealed costs <strong>-15 points</strong></li>
-        <li>Wrong guess: <strong>-10 points</strong> (you can try again)</li>
+        <li>Correct answer: <strong>+5 pts</strong></li>
+        <li>Wrong guess: <strong>-4 pts</strong></li>
+        <li>Hints 1–2 are <strong>free</strong>; Hint 3: <strong>-1</strong>, Hint 4: <strong>-2</strong>, Hint 5: <strong>-3</strong>, Hint 6: <strong>-4</strong></li>
         <li>Pick from 4 choices — only <strong>one</strong> is correct</li>
-        <li><strong>10 rounds</strong> total — max score: 1000</li>
+        <li><strong>10 rounds</strong> total</li>
+        <li>⏱️ <strong>2 min 30 sec</strong> total — time bonus up to <strong>+50 pts</strong>!</li>
+        <li>Only <strong>one attempt</strong> per player</li>
       </ul>
+      <div class="name-input-group">
+        <label>Enter your name</label>
+        <input type="text" id="player-name" placeholder="e.g. Jensen Huang" autocomplete="off">
+      </div>
+      <div class="name-input-group">
+        <label>NVIDIA Email</label>
+        <input type="email" id="player-email" placeholder="e.g. jhuang@nvidia.com" autocomplete="off">
+        <div class="name-error" id="email-error">Please enter a valid @nvidia.com email</div>
+      </div>
+      <div class="name-error" id="name-error">Please enter your name to start</div>
       <button class="start-btn" onclick="startGame()">⚡ START GAME</button>
     </div>
   </div>
@@ -395,6 +524,10 @@
       <div class="score-item">
         <div class="label">Round Pts</div>
         <div class="value" id="round-pts-display">100</div>
+      </div>
+      <div class="score-item">
+        <div class="label">⏱ Time</div>
+        <div class="value" id="timer-display">2:30</div>
       </div>
     </div>
 
@@ -423,15 +556,25 @@
       <div class="final-score" id="final-score">0</div>
       <p style="color:#888;margin-bottom:4px;" id="results-subtitle">out of 1000</p>
       <div class="final-breakdown" id="final-breakdown"></div>
-      <button class="start-btn" onclick="startGame()" style="margin-top:16px;">🔄 PLAY AGAIN</button>
+      <button class="submit-btn" id="submit-btn" onclick="submitScore()">📤 SUBMIT SCORE</button>
+      <div class="submit-status" id="submit-status"></div>
       <br>
       <button class="share-btn" onclick="copyScore()">📋 Copy Score to Share</button>
       <div id="copy-confirm" style="color:var(--nv-green);margin-top:8px;font-size:0.85rem;display:none;">Copied!</div>
+      <div class="leaderboard-section">
+        <h3>🏆 LEADERBOARD</h3>
+        <div id="lb-results"><span class="lb-loading">Loading...</span></div>
+      </div>
     </div>
   </div>
 </div>
 
 <script>
+// =====================================================
+// CONFIGURATION — UPDATE THIS WITH YOUR GOOGLE APPS SCRIPT URL
+// =====================================================
+const LEADERBOARD_API = ''; // <-- paste your Apps Script web app URL here
+
 // ========== CHIP DATABASE ==========
 const ALL_CHIPS = [
   {
@@ -646,17 +789,83 @@ const ALL_CHIPS = [
 
 // ========== GAME STATE ==========
 const TOTAL_ROUNDS = 10;
-const START_PTS = 100;
-const HINT_COST = 15;
-const WRONG_COST = 10;
+const CORRECT_PTS = 5;
+const WRONG_COST = 4;
+const HINT_PENALTIES = [0, 0, 1, 2, 3, 4]; // cost for hints 1-6
+const GAME_TIME = 150; // 2 min 30 sec
+const MAX_TIME_BONUS = 50;
 
+let playerName = '';
+let playerEmail = '';
 let gameChips = [];
 let roundIndex = 0;
 let totalScore = 0;
-let roundScore = 0;
+let roundPenalty = 0; // accumulated hint + wrong penalties this round
 let hintsRevealed = 0;
 let answered = false;
-let roundResults = []; // {chip, correct, hintsUsed, pts}
+let roundResults = [];
+let timerInterval = null;
+let timeLeft = GAME_TIME;
+
+// ========== ANTI-CHEAT ==========
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('copy', e => e.preventDefault());
+document.addEventListener('cut', e => e.preventDefault());
+document.addEventListener('paste', e => e.preventDefault());
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && ['c','v','u','a'].includes(e.key.toLowerCase())) {
+    e.preventDefault();
+  }
+  // Block F12 and Ctrl+Shift+I
+  if (e.key === 'F12' || ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'i')) {
+    e.preventDefault();
+  }
+});
+
+// ========== CHECK ALREADY PLAYED ==========
+// On page load, no auto-redirect — the email check happens at startGame().
+
+// ========== TIMER ==========
+function startTimer() {
+  timeLeft = GAME_TIME;
+  updateTimerDisplay();
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    updateTimerDisplay();
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+      endGameByTimer();
+    }
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(timeLeft / 60);
+  const s = timeLeft % 60;
+  const el = document.getElementById('timer-display');
+  el.textContent = `${m}:${s.toString().padStart(2, '0')}`;
+  if (timeLeft <= 30) {
+    el.classList.add('timer-warn');
+  } else {
+    el.classList.remove('timer-warn');
+  }
+}
+
+function endGameByTimer() {
+  // Mark current round as unanswered if not answered
+  if (!answered) {
+    const chip = gameChips[roundIndex];
+    roundResults.push({ chip: chip.name, correct: false, hintsUsed: hintsRevealed, pts: 0 });
+  }
+  // Fill remaining rounds as unanswered
+  for (let i = roundIndex + 1; i < TOTAL_ROUNDS; i++) {
+    if (i < gameChips.length) {
+      roundResults.push({ chip: gameChips[i].name, correct: false, hintsUsed: 0, pts: 0 });
+    }
+  }
+  showResults();
+}
 
 // ========== HINT BUILDER ==========
 function getHints(chip) {
@@ -673,14 +882,12 @@ function getHints(chip) {
 // ========== DECOY PICKER ==========
 function pickChoices(correctChip) {
   const pool = ALL_CHIPS.filter(c => c.name !== correctChip.name);
-  // shuffle pool
   for (let i = pool.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
   const decoys = pool.slice(0, 3);
   const choices = [...decoys.map(c => c.name), correctChip.name];
-  // shuffle choices
   for (let i = choices.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [choices[i], choices[j]] = [choices[j], choices[i]];
@@ -696,7 +903,38 @@ function showScreen(id) {
 
 // ========== START ==========
 function startGame() {
-  // pick 10 random chips
+  const nameInput = document.getElementById('player-name');
+  const emailInput = document.getElementById('player-email');
+  const name = nameInput.value.trim();
+  const email = emailInput.value.trim().toLowerCase();
+
+  document.getElementById('name-error').style.display = 'none';
+  document.getElementById('email-error').style.display = 'none';
+
+  if (!name) {
+    document.getElementById('name-error').style.display = 'block';
+    nameInput.focus();
+    return;
+  }
+  if (!email || !email.endsWith('@nvidia.com')) {
+    document.getElementById('email-error').style.display = 'block';
+    emailInput.focus();
+    return;
+  }
+
+  // Check if this email already played
+  const played = localStorage.getItem('ntc_played_' + email);
+  if (played) {
+    const data = JSON.parse(played);
+    document.getElementById('prev-score').textContent = data.score;
+    showScreen('already-played-screen');
+    loadLeaderboard('lb-already-played');
+    return;
+  }
+
+  playerName = name;
+  playerEmail = email;
+
   const shuffled = [...ALL_CHIPS];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -708,23 +946,22 @@ function startGame() {
   roundResults = [];
   showScreen('game-screen');
   loadRound();
+  startTimer();
 }
 
 // ========== LOAD ROUND ==========
 function loadRound() {
   const chip = gameChips[roundIndex];
   const hints = getHints(chip);
-  hintsRevealed = 1; // first hint free
-  roundScore = START_PTS;
+  hintsRevealed = 1;
+  roundPenalty = 0;
   answered = false;
 
-  // Update scoreboard
   document.getElementById('score-display').textContent = totalScore;
   document.getElementById('round-display').textContent = `${roundIndex + 1}/${TOTAL_ROUNDS}`;
-  document.getElementById('round-pts-display').textContent = roundScore;
+  document.getElementById('round-pts-display').textContent = CORRECT_PTS;
   document.getElementById('progress-fill').style.width = `${((roundIndex + 1) / TOTAL_ROUNDS) * 100}%`;
 
-  // Build hint cards
   const grid = document.getElementById('hints-grid');
   grid.innerHTML = '';
   hints.forEach((h, i) => {
@@ -741,7 +978,6 @@ function loadRound() {
     grid.appendChild(card);
   });
 
-  // Build choices
   const choices = pickChoices(chip);
   const cGrid = document.getElementById('choices-grid');
   cGrid.innerHTML = '';
@@ -753,9 +989,9 @@ function loadRound() {
     cGrid.appendChild(btn);
   });
 
-  // Reset UI
   document.getElementById('reveal-btn').disabled = false;
   document.getElementById('reveal-btn').style.display = 'block';
+  updateRevealBtn();
   document.getElementById('next-btn').style.display = 'none';
   const fb = document.getElementById('feedback');
   fb.className = 'feedback';
@@ -768,11 +1004,23 @@ function revealHint() {
   const card = document.getElementById(`hint-${hintsRevealed}`);
   card.classList.remove('locked');
   card.classList.add('revealed');
+  const penalty = HINT_PENALTIES[hintsRevealed];
+  if (penalty > 0) {
+    roundPenalty += penalty;
+  }
   hintsRevealed++;
-  roundScore = Math.max(0, roundScore - HINT_COST);
-  document.getElementById('round-pts-display').textContent = roundScore;
+  updateRevealBtn();
   if (hintsRevealed >= 6) {
     document.getElementById('reveal-btn').disabled = true;
+  }
+}
+
+function updateRevealBtn() {
+  const btn = document.getElementById('reveal-btn');
+  const nextIdx = hintsRevealed; // 0-based index of next hint to reveal
+  if (nextIdx < 6) {
+    const cost = HINT_PENALTIES[nextIdx];
+    btn.textContent = cost > 0 ? `🔍 Reveal Next Hint (-${cost} pts)` : '🔍 Reveal Next Hint (free)';
   }
 }
 
@@ -783,19 +1031,18 @@ function makeGuess(btn, guess, correct) {
   if (guess === correct) {
     answered = true;
     btn.classList.add('correct');
-    // highlight correct
     document.querySelectorAll('.choice-btn').forEach(b => b.disabled = true);
+    const roundPts = Math.max(0, CORRECT_PTS - roundPenalty);
     const fb = document.getElementById('feedback');
     fb.className = 'feedback correct';
-    fb.innerHTML = `✅ Correct! <strong>+${roundScore} pts</strong>`;
+    fb.innerHTML = `✅ Correct! <strong>+${roundPts} pts</strong>`;
     fb.style.display = 'block';
-    totalScore += roundScore;
+    totalScore += roundPts;
     document.getElementById('score-display').textContent = totalScore;
-    roundResults.push({ chip: correct, correct: true, hintsUsed: hintsRevealed, pts: roundScore });
+    roundResults.push({ chip: correct, correct: true, hintsUsed: hintsRevealed, pts: roundPts });
     document.getElementById('reveal-btn').style.display = 'none';
     document.getElementById('next-btn').style.display = 'block';
     document.getElementById('next-btn').textContent = roundIndex < TOTAL_ROUNDS - 1 ? 'NEXT ROUND →' : '🏁 SEE RESULTS';
-    // reveal all remaining hints
     for (let i = 0; i < 6; i++) {
       const c = document.getElementById(`hint-${i}`);
       c.classList.remove('locked');
@@ -804,8 +1051,9 @@ function makeGuess(btn, guess, correct) {
   } else {
     btn.classList.add('wrong');
     btn.disabled = true;
-    roundScore = Math.max(0, roundScore - WRONG_COST);
-    document.getElementById('round-pts-display').textContent = roundScore;
+    roundPenalty += WRONG_COST;
+    const potentialPts = Math.max(0, CORRECT_PTS - roundPenalty);
+    document.getElementById('round-pts-display').textContent = potentialPts;
     const fb = document.getElementById('feedback');
     fb.className = 'feedback wrong';
     fb.innerHTML = `❌ Not that one! <strong>-${WRONG_COST} pts</strong> — try again`;
@@ -817,6 +1065,7 @@ function makeGuess(btn, guess, correct) {
 function nextRound() {
   roundIndex++;
   if (roundIndex >= TOTAL_ROUNDS) {
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
     showResults();
   } else {
     loadRound();
@@ -825,9 +1074,15 @@ function nextRound() {
 
 // ========== RESULTS ==========
 function showResults() {
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+  // Time bonus: scale remaining seconds to 0-50
+  const timeBonus = Math.round((timeLeft / GAME_TIME) * MAX_TIME_BONUS);
+  totalScore += timeBonus;
   showScreen('results-screen');
   document.getElementById('final-score').textContent = totalScore;
-  const pct = totalScore / (TOTAL_ROUNDS * START_PTS);
+  const maxRoundPts = TOTAL_ROUNDS * CORRECT_PTS;
+  const maxTotal = maxRoundPts + MAX_TIME_BONUS; // 100
+  const pct = totalScore / maxTotal;
   let title, emoji;
   if (pct >= 0.9) { title = "GPU Grandmaster!"; emoji = "🏆"; }
   else if (pct >= 0.7) { title = "Silicon Savant"; emoji = "🥇"; }
@@ -836,6 +1091,7 @@ function showResults() {
   else { title = "Back to the Datasheet…"; emoji = "📖"; }
   document.getElementById('trophy-emoji').textContent = emoji;
   document.getElementById('results-title').textContent = title;
+  document.getElementById('results-subtitle').textContent = `out of ${maxTotal}`;
 
   const bd = document.getElementById('final-breakdown');
   bd.innerHTML = '<div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:1px;color:#666;margin-bottom:8px;">Round Breakdown</div>';
@@ -846,12 +1102,84 @@ function showResults() {
         <span class="bv ${r.correct ? 'correct-color' : 'wrong-color'}">${r.correct ? '+' + r.pts : '0'} (${r.hintsUsed} hints)</span>
       </div>`;
   });
+  bd.innerHTML += `
+    <div class="breakdown-row" style="border-top:1px solid rgba(118,185,0,0.2);margin-top:8px;padding-top:12px;">
+      <span class="bl">⏱ Time Bonus</span>
+      <span class="bv correct-color">+${timeBonus}</span>
+    </div>`;
+
+  loadLeaderboard('lb-results');
+}
+
+// ========== SUBMIT SCORE ==========
+async function submitScore() {
+  const btn = document.getElementById('submit-btn');
+  const status = document.getElementById('submit-status');
+  btn.disabled = true;
+  status.textContent = 'Submitting...';
+  status.style.color = '#888';
+
+  if (!LEADERBOARD_API) {
+    // No backend configured — just save locally
+    localStorage.setItem('ntc_played_' + playerEmail, JSON.stringify({ name: playerName, score: totalScore, ts: Date.now() }));
+    status.innerHTML = '✅ Score saved locally! <span style="color:#666;">(Leaderboard backend not configured)</span>';
+    status.style.color = 'var(--nv-green)';
+    return;
+  }
+
+  try {
+    const resp = await fetch(LEADERBOARD_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: playerName, email: playerEmail, score: totalScore }),
+    });
+    if (resp.ok) {
+      localStorage.setItem('ntc_played_' + playerEmail, JSON.stringify({ name: playerName, score: totalScore, ts: Date.now() }));
+      status.textContent = '✅ Score submitted!';
+      status.style.color = 'var(--nv-green)';
+      loadLeaderboard('lb-results');
+    } else {
+      throw new Error('Server error');
+    }
+  } catch (e) {
+    // Fallback: save locally
+    localStorage.setItem('ntc_played_' + playerEmail, JSON.stringify({ name: playerName, score: totalScore, ts: Date.now() }));
+    status.textContent = '⚠️ Could not reach leaderboard server. Score saved locally.';
+    status.style.color = 'var(--nv-accent)';
+    btn.disabled = false;
+  }
+}
+
+// ========== LEADERBOARD ==========
+async function loadLeaderboard(containerId) {
+  const el = document.getElementById(containerId);
+  if (!LEADERBOARD_API) {
+    el.innerHTML = '<span class="lb-loading">Leaderboard will appear once the backend is connected.</span>';
+    return;
+  }
+  try {
+    const resp = await fetch(LEADERBOARD_API);
+    const data = await resp.json();
+    if (!data.length) {
+      el.innerHTML = '<span class="lb-loading">No scores yet — be the first!</span>';
+      return;
+    }
+    let html = '<table class="lb-table"><thead><tr><th>#</th><th>Player</th><th>Score</th></tr></thead><tbody>';
+    data.slice(0, 10).forEach((entry, i) => {
+      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '';
+      html += `<tr><td class="lb-rank">${medal || (i+1)}</td><td>${entry.name}</td><td>${entry.score}</td></tr>`;
+    });
+    html += '</tbody></table>';
+    el.innerHTML = html;
+  } catch (e) {
+    el.innerHTML = '<span class="lb-loading">Could not load leaderboard.</span>';
+  }
 }
 
 // ========== SHARE ==========
 function copyScore() {
   const correct = roundResults.filter(r => r.correct).length;
-  const txt = `🎯 Name That Chip! — HW Fest 2026\nScore: ${totalScore}/1000 | ${correct}/${TOTAL_ROUNDS} correct\nThink you can beat me? Play here!`;
+  const txt = `🎯 Name That Chip! — HW Fest 2026\nScore: ${totalScore}/${TOTAL_ROUNDS * CORRECT_PTS + MAX_TIME_BONUS} | ${correct}/${TOTAL_ROUNDS} correct\nThink you can beat me? Play here!`;
   navigator.clipboard.writeText(txt).then(() => {
     const c = document.getElementById('copy-confirm');
     c.style.display = 'block';
