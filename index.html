@@ -486,15 +486,27 @@
     <div class="welcome-box">
       <div class="emoji">🧠</div>
       <p>Think you know your NVIDIA GPUs?<br>Guess the chip from its specs — the fewer hints you need, the higher your score!</p>
+
+      <h3 style="margin:18px 0 8px;color:var(--nv-green);font-size:1.1rem;">📋 Rules</h3>
       <ul class="rules-list">
-        <li>Each round shows <strong>6 hints</strong>, revealed one at a time</li>
-        <li>Correct answer: <strong>+5 pts</strong></li>
-        <li>Wrong guess: <strong>-4 pts</strong></li>
-        <li>Hints 1–2 are <strong>free</strong>; Hint 3: <strong>-1</strong>, Hint 4: <strong>-2</strong>, Hint 5: <strong>-3</strong>, Hint 6: <strong>-4</strong></li>
-        <li>Pick from 4 choices — only <strong>one</strong> is correct</li>
-        <li><strong>10 rounds</strong> total</li>
-        <li>⏱️ <strong>2 min 30 sec</strong> total — time bonus up to <strong>+50 pts</strong>!</li>
-        <li>Only <strong>one attempt</strong> per player</li>
+        <li><strong>10 rounds</strong> — each round shows <strong>6 hints</strong>, revealed one at a time</li>
+        <li>Pick from <strong>4 choices</strong> — only one is correct</li>
+        <li>Multiple guesses allowed — keep trying until you get it!</li>
+        <li>⏱️ <strong>2 min 30 sec</strong> total time limit</li>
+        <li>Only <strong>one attempt</strong> per player — make it count!</li>
+      </ul>
+
+      <h3 style="margin:18px 0 8px;color:var(--nv-green);font-size:1.1rem;">🏆 Scoring</h3>
+      <ul class="rules-list">
+        <li>Correct answer: <strong>+10 pts</strong></li>
+        <li>Hints 1–2: <strong>free</strong></li>
+        <li>Hints 3–4: <strong>-1 pt</strong> each</li>
+        <li>Hints 5–6: <strong>-2 pts</strong> each</li>
+        <li>1st wrong guess: <strong>-2 pts</strong></li>
+        <li>2nd wrong guess: <strong>-3 pts</strong></li>
+        <li>3rd+ wrong guess: <strong>-4 pts</strong> each</li>
+        <li>Time bonus: up to <strong>+100 pts</strong> (faster = more bonus!)</li>
+        <li><strong>Max possible: 200 pts</strong></li>
       </ul>
       <div class="name-input-group">
         <label>Enter your name</label>
@@ -789,11 +801,11 @@ const ALL_CHIPS = [
 
 // ========== GAME STATE ==========
 const TOTAL_ROUNDS = 10;
-const CORRECT_PTS = 5;
-const WRONG_COST = 4;
-const HINT_PENALTIES = [0, 0, 1, 2, 3, 4]; // cost for hints 1-6
+const CORRECT_PTS = 10;
+const WRONG_COSTS = [2, 3, 4, 4, 4]; // escalating: 1st wrong -2, 2nd -3, 3rd+ -4
+const HINT_PENALTIES = [0, 0, 1, 1, 2, 2]; // cost for hints 1-6
 const GAME_TIME = 150; // 2 min 30 sec
-const MAX_TIME_BONUS = 50;
+const MAX_TIME_BONUS = 100;
 
 let playerName = '';
 let playerEmail = '';
@@ -801,6 +813,7 @@ let gameChips = [];
 let roundIndex = 0;
 let totalScore = 0;
 let roundPenalty = 0; // accumulated hint + wrong penalties this round
+let wrongCount = 0; // wrong guesses this round
 let hintsRevealed = 0;
 let answered = false;
 let roundResults = [];
@@ -955,6 +968,7 @@ function loadRound() {
   const hints = getHints(chip);
   hintsRevealed = 1;
   roundPenalty = 0;
+  wrongCount = 0;
   answered = false;
 
   document.getElementById('score-display').textContent = totalScore;
@@ -1051,12 +1065,14 @@ function makeGuess(btn, guess, correct) {
   } else {
     btn.classList.add('wrong');
     btn.disabled = true;
-    roundPenalty += WRONG_COST;
+    const wrongCost = WRONG_COSTS[Math.min(wrongCount, WRONG_COSTS.length - 1)];
+    wrongCount++;
+    roundPenalty += wrongCost;
     const potentialPts = Math.max(0, CORRECT_PTS - roundPenalty);
     document.getElementById('round-pts-display').textContent = potentialPts;
     const fb = document.getElementById('feedback');
     fb.className = 'feedback wrong';
-    fb.innerHTML = `❌ Not that one! <strong>-${WRONG_COST} pts</strong> — try again`;
+    fb.innerHTML = `❌ Not that one! <strong>-${wrongCost} pts</strong> — try again`;
     fb.style.display = 'block';
   }
 }
